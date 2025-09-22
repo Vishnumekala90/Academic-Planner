@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-image: linear-gradient(to right top, #a18cd1, #fbc2eb);
+            background-attachment: fixed;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        /* Style for completed tasks */
+        .task-completed { text-decoration: line-through; opacity: 0.6; }
+        .auth-link { cursor: pointer; color: #4f46e5; }
+        .auth-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div id="auth-container" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-sm">
+            <div id="login-form-container" class="bg-white/70 backdrop-blur-sm p-8 rounded-2xl shadow-lg">
+                <h1 class="text-3xl font-bold text-center text-slate-900 mb-2">Welcome Back!</h1>
+                <p class="text-center text-slate-500 mb-6">Please log in to your planner.</p>
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label for="login-username" class="block text-sm font-medium text-slate-600">Username</label>
+                        <input type="text" id="login-username" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium text-slate-600">Password</label>
+                        <input type="password" id="login-password" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <p id="loginError" class="text-sm text-red-600 hidden">Invalid username or password.</p>
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-transform transform hover:scale-105">
+                        <i class="fas fa-sign-in-alt mr-2"></i> Log In
+                    </button>
+                </form>
+                <p class="text-center text-sm text-slate-600 mt-6">
+                    Don't have an account? <span id="show-register-form" class="font-semibold auth-link">Sign Up</span>
+                </p>
+            </div>
+
+            <div id="register-form-container" class="bg-white/70 backdrop-blur-sm p-8 rounded-2xl shadow-lg hidden">
+                <h1 class="text-3xl font-bold text-center text-slate-900 mb-2">Create Account</h1>
+                <p class="text-center text-slate-500 mb-6">Start organizing your academic life.</p>
+                <form id="registerForm" class="space-y-4">
+                    <div>
+                        <label for="register-username" class="block text-sm font-medium text-slate-600">Username</label>
+                        <input type="text" id="register-username" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="register-password" class="block text-sm font-medium text-slate-600">Password</label>
+                        <input type="password" id="register-password" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <p id="registerError" class="text-sm text-red-600 hidden"></p>
+                    <p id="registerSuccess" class="text-sm text-green-600 hidden">Registration successful! Please log in.</p>
+                    <button type="submit" class="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-transform transform hover:scale-105">
+                        <i class="fas fa-user-plus mr-2"></i> Register
+                    </button>
+                </form>
+                 <p class="text-center text-sm text-slate-600 mt-6">
+                    Already have an account? <span id="show-login-form" class="font-semibold auth-link">Log In</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="planner-container" class="container mx-auto p-4 sm:p-6 lg:p-8 hidden">
+        <header class="text-center mb-8 relative">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-white" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.2);">Academic Planner</h1>
+            <p id="welcomeMessage" class="mt-2 text-slate-200">Organize your tasks, boost your productivity.</p>
+            <div id="currentTimeDisplay" class="text-lg text-slate-100 mt-2 font-medium" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.1);"></div>
+            <button id="logoutBtn" class="absolute top-0 right-0 bg-white/30 text-white font-bold py-2 px-4 rounded-lg hover:bg-white/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-colors text-sm">
+                <i class="fas fa-sign-out-alt mr-2"></i>Logout
+            </button>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 space-y-8">
+                <div class="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-slate-900">Add New Task</h2>
+                    <form id="addTaskForm" class="space-y-4">
+                        <div>
+                            <label for="taskName" class="block text-sm font-medium text-slate-600">Task Name</label>
+                            <input type="text" id="taskName" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                         <div>
+                            <label for="subject" class="block text-sm font-medium text-slate-600">Subject / Course</label>
+                            <input type="text" id="subject" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label for="dueDate" class="block text-sm font-medium text-slate-600">Due Date</label>
+                            <input type="date" id="dueDate" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                             <div>
+                                <label for="startTime" class="block text-sm font-medium text-slate-600">Start Time</label>
+                                <input type="time" id="startTime" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label for="endTime" class="block text-sm font-medium text-slate-600">End Time</label>
+                                <input type="time" id="endTime" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-transform transform hover:scale-105">
+                            <i class="fas fa-plus mr-2"></i> Add Task
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-slate-900">This Week's Timeline</h2>
+                    <div id="timeline" class="space-y-3"></div>
+                </div>
+
+                <div class="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-slate-900">Task Status Overview</h2>
+                    <div class="max-w-xs mx-auto">
+                         <canvas id="taskStatusChart"></canvas>
+                    </div>
+                </div>
+                </div>
+
+            <div class="lg:col-span-2 bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-4 text-slate-900">Your Tasks</h2>
+                <div id="taskList" class="space-y-4 h-[60vh] overflow-y-auto pr-2"></div>
+                <div id="noTasksMessage" class="text-center py-16 text-slate-500 hidden">
+                    <i class="fas fa-check-circle text-5xl text-slate-300"></i>
+                    <p class="mt-4 text-lg font-medium">All clear! Add a new task to get started.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // === GLOBAL & AUTH ELEMENTS ===
+    const authContainer = document.getElementById('auth-container');
+    const plannerContainer = document.getElementById('planner-container');
+    const loginFormContainer = document.getElementById('login-form-container');
+    const registerFormContainer = document.getElementById('register-form-container');
+    
+    // === AUTH LOGIC & USER MANAGEMENT ===
+    let currentUser = null;
+    let timeUpdateInterval, taskUpdateInterval, notificationInterval;
+
+    function getUsers() { return JSON.parse(localStorage.getItem('plannerUsers')) || []; }
+    function saveUsers(users) { localStorage.setItem('plannerUsers', JSON.stringify(users)); }
+
+    document.getElementById('show-register-form').addEventListener('click', () => {
+        loginFormContainer.classList.add('hidden');
+        registerFormContainer.classList.remove('hidden');
+    });
+    document.getElementById('show-login-form').addEventListener('click', () => {
+        registerFormContainer.classList.add('hidden');
+        loginFormContainer.classList.remove('hidden');
+    });
+
+    document.getElementById('registerForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = document.getElementById('register-username').value.trim();
+        const password = document.getElementById('register-password').value;
+        const errorEl = document.getElementById('registerError');
+        const successEl = document.getElementById('registerSuccess');
+        errorEl.classList.add('hidden');
+        successEl.classList.add('hidden');
+        if (!username || !password) {
+            errorEl.textContent = 'Username and password cannot be empty.';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+        const users = getUsers();
+        if (users.find(user => user.username === username)) {
+            errorEl.textContent = 'Username already exists.';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+        users.push({ username, password });
+        saveUsers(users);
+        successEl.classList.remove('hidden');
+        e.target.reset();
+        setTimeout(() => {
+            registerFormContainer.classList.add('hidden');
+            loginFormContainer.classList.remove('hidden');
+            successEl.classList.add('hidden');
+        }, 2000);
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+        const errorEl = document.getElementById('loginError');
+        const users = getUsers();
+        const user = users.find(u => u.username === username && u.password === password);
+        if (user) {
+            sessionStorage.setItem('loggedInUser', username);
+            checkAuth();
+            errorEl.classList.add('hidden');
+        } else {
+            errorEl.classList.remove('hidden');
+        }
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        sessionStorage.removeItem('loggedInUser');
+        currentUser = null;
+        if (timeUpdateInterval) clearInterval(timeUpdateInterval);
+        if (taskUpdateInterval) clearInterval(taskUpdateInterval);
+        if (notificationInterval) clearInterval(notificationInterval);
+        checkAuth();
+    });
+
+    function checkAuth() {
+        currentUser = sessionStorage.getItem('loggedInUser');
+        if (currentUser) {
+            authContainer.classList.add('hidden');
+            plannerContainer.classList.remove('hidden');
+            document.getElementById('welcomeMessage').textContent = `Welcome, ${currentUser}! Time to get organized.`;
+            initializeApp();
+        } else {
+            authContainer.classList.remove('hidden');
+            plannerContainer.classList.add('hidden');
+            if (timeUpdateInterval) clearInterval(timeUpdateInterval);
+            if (taskUpdateInterval) clearInterval(taskUpdateInterval);
+            if (notificationInterval) clearInterval(notificationInterval);
+        }
+    }
+    
+    // === PLANNER ELEMENTS & LOGIC ===
+    const addTaskForm = document.getElementById('addTaskForm');
+    const taskNameInput = document.getElementById('taskName');
+    const dueDateInput = document.getElementById('dueDate');
+    const subjectInput = document.getElementById('subject');
+    const startTimeInput = document.getElementById('startTime');
+    const endTimeInput = document.getElementById('endTime');
+    const taskList = document.getElementById('taskList');
+    const noTasksMessage = document.getElementById('noTasksMessage');
+    const timelineContainer = document.getElementById('timeline');
+
+    let tasks = [];
+    let myPieChart = null; // Variable to hold the chart instance
+
+    function initializeApp() {
+        const today = new Date().toISOString().split('T')[0];
+        dueDateInput.setAttribute('min', today);
+        loadTasks();
+        renderAll();
+        
+        requestNotificationPermission(); // Ask for permission to send notifications
+
+        if (timeUpdateInterval) clearInterval(timeUpdateInterval);
+        timeUpdateInterval = setInterval(updateTime, 1000);
+        updateTime();
+
+        if (taskUpdateInterval) clearInterval(taskUpdateInterval);
+        taskUpdateInterval = setInterval(renderTasks, 60000);
+
+        // NEW: Interval to check for and schedule upcoming task notifications
+        if (notificationInterval) clearInterval(notificationInterval);
+        notificationInterval = setInterval(scheduleStartTaskNotifications, 15000); // Check every 15s
+        scheduleStartTaskNotifications(); // Run once on load
+    }
+    
+    // --- NOTIFICATION LOGIC ---
+    function requestNotificationPermission() {
+        if ('Notification' in window) {
+            if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        new Notification('Notifications Enabled!', {
+                            body: 'You will now be reminded about your tasks.',
+                            icon: 'https://cdn-icons-png.flaticon.com/512/1024/1024823.png'
+                        });
+                    }
+                });
+            }
+        }
+    }
+
+    function scheduleStartTaskNotifications() {
+        if (Notification.permission !== 'granted') return;
+
+        const now = new Date();
+        tasks.forEach(task => {
+            if (task.startTime && !task.isComplete && !task.notificationScheduled) {
+                const taskStartDateTime = new Date(`${task.dueDate}T${task.startTime}`);
+                if (taskStartDateTime > now) {
+                    const timeUntilStart = taskStartDateTime.getTime() - now.getTime();
+                    
+                    setTimeout(() => {
+                        const currentTaskState = tasks.find(t => t.id === task.id);
+                        if (currentTaskState && !currentTaskState.isComplete) {
+                            new Notification('Time to Start Your Task!', {
+                                body: `It's time for: "${task.name}"`,
+                                icon: 'https://cdn-icons-png.flaticon.com/512/1024/1024823.png'
+                            });
+                        }
+                    }, timeUntilStart);
+
+                    task.notificationScheduled = true;
+                }
+            }
+        });
+        saveTasks();
+    }
+    // --- END NOTIFICATION LOGIC ---
+
+
+    function updateTime() {
+        const timeDisplay = document.getElementById('currentTimeDisplay');
+        if (timeDisplay) {
+            const now = new Date();
+            timeDisplay.textContent = now.toLocaleString('en-US', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true
+            });
+        }
+    }
+
+    function loadTasks() {
+        const allTasks = JSON.parse(localStorage.getItem('academicPlannerTasks')) || {};
+        tasks = allTasks[currentUser] || [];
+    }
+
+    function saveTasks() {
+        const allTasks = JSON.parse(localStorage.getItem('academicPlannerTasks')) || {};
+        allTasks[currentUser] = tasks;
+        localStorage.setItem('academicPlannerTasks', JSON.stringify(allTasks));
+    }
+
+    function formatTime(timeString) {
+        if (!timeString) return '';
+        const [hourString, minute] = timeString.split(':');
+        return new Date(1970, 0, 1, +hourString, +minute).toLocaleTimeString('en-US', {
+            hour: 'numeric', minute: 'numeric', hour12: true
+        });
+    }
+
+    function renderTasks() {
+        taskList.innerHTML = '';
+        if (tasks.length === 0) {
+            noTasksMessage.classList.remove('hidden');
+            taskList.classList.add('hidden');
+            return;
+        }
+        
+        noTasksMessage.classList.add('hidden');
+        taskList.classList.remove('hidden');
+
+        const sortedTasks = tasks.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+        sortedTasks.forEach(task => {
+            const today = new Date().toISOString().split('T')[0];
+            const isOverdue = task.dueDate < today && !task.isComplete;
+            const taskElement = document.createElement('div');
+            const now = new Date();
+            let isLocked = false;
+            let lockedTitle = 'Mark as complete';
+            if (task.endTime && !task.isComplete) {
+                const taskEndDateTime = new Date(`${task.dueDate}T${task.endTime}`);
+                if (now < taskEndDateTime) {
+                    isLocked = true;
+                    lockedTitle = `This task can be completed after ${formatTime(task.endTime)}`;
+                }
+            }
+            const timeInfo = task.startTime && task.endTime ? `<span><i class="fas fa-clock mr-1.5"></i>${formatTime(task.startTime)} - ${formatTime(task.endTime)}</span>` : '';
+            taskElement.className = `p-4 rounded-lg border flex items-center justify-between transition-all ${task.isComplete ? 'bg-slate-50/50' : 'bg-white/80'} ${isOverdue ? 'border-red-400' : 'border-slate-200'}`;
+            taskElement.innerHTML = `
+                <div class="flex items-center gap-4">
+                    <input type="checkbox" data-id="${task.id}" title="${lockedTitle}" class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 task-checkbox flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed" 
+                    ${task.isComplete ? 'checked' : ''} ${isLocked ? 'disabled' : ''}>
+                    <div>
+                        <p class="font-bold ${task.isComplete ? 'task-completed text-slate-500' : 'text-slate-800'}">${task.name}</p>
+                        <div class="text-sm text-slate-500 flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                            <span><i class="fas fa-calendar-alt mr-1.5"></i>${new Date(task.dueDate).toLocaleDateString()}</span>
+                            ${task.subject ? `<span><i class="fas fa-book mr-1.5"></i>${task.subject}</span>` : ''}
+                            ${timeInfo}
+                        </div>
+                    </div>
+                </div>
+                <button data-id="${task.id}" class="delete-btn text-slate-400 hover:text-red-500 transition-colors ml-2">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            `;
+            taskList.appendChild(taskElement);
+        });
+    }
+
+    function renderTimeline() {
+        timelineContainer.innerHTML = '';
+        const todayDate = new Date();
+        const upcomingDays = 7;
+        for (let i = 0; i < upcomingDays; i++) {
+            const day = new Date(todayDate);
+            day.setDate(todayDate.getDate() + i);
+            const dayString = day.toISOString().split('T')[0];
+            const dayName = day.toLocaleDateString('en-US', { weekday: 'long' });
+            const tasksForDay = tasks.filter(task => task.dueDate === dayString && !task.isComplete);
+            const dayElement = document.createElement('div');
+            let tasksHtml = (tasksForDay.length > 0) ? `<div class="mt-1 text-xs text-indigo-700 font-semibold">${tasksForDay.length} task${tasksForDay.length > 1 ? 's' : ''} due</div>` : `<div class="mt-1 text-xs text-slate-400">No tasks due</div>`;
+            dayElement.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="font-semibold text-sm">${i === 0 ? 'Today' : dayName}</span>
+                    <span class="text-xs text-slate-400">${day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-2.5 mt-1"><div class="bg-indigo-500 h-2.5 rounded-full" style="width: ${tasksForDay.length * 25 > 100 ? 100 : tasksForDay.length * 25}%"></div></div>
+                ${tasksHtml}`;
+            timelineContainer.appendChild(dayElement);
+        }
+    }
+    
+    // --- NEW: PIE CHART LOGIC ---
+    function renderPieChart() {
+        const ctx = document.getElementById('taskStatusChart').getContext('2d');
+        
+        let completed = 0;
+        let pending = 0;
+        let inProgress = 0;
+        const now = new Date();
+
+        tasks.forEach(task => {
+            if (task.isComplete) {
+                completed++;
+            } else {
+                const taskStartDateTime = new Date(`${task.dueDate}T${task.startTime}`);
+                const taskEndDateTime = new Date(`${task.dueDate}T${task.endTime}`);
+                
+                if (task.startTime && task.endTime && now >= taskStartDateTime && now <= taskEndDateTime) {
+                    inProgress++;
+                } else {
+                    pending++;
+                }
+            }
+        });
+        
+        // Destroy the old chart instance before creating a new one
+        if (myPieChart) {
+            myPieChart.destroy();
+        }
+
+        myPieChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Completed', 'Pending', 'In Progress'],
+                datasets: [{
+                    label: 'Task Status',
+                    data: [completed, pending, inProgress],
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.7)',  // Green
+                        'rgba(153, 102, 255, 0.7)', // Purple
+                        'rgba(255, 159, 64, 0.7)'   // Orange
+                    ],
+                    borderColor: [
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: false, // Title is already in the H2 tag
+                        text: 'Task Status'
+                    }
+                }
+            }
+        });
+    }
+
+    function addTask(e) {
+        e.preventDefault();
+        const name = taskNameInput.value.trim();
+        const dueDate = dueDateInput.value;
+        const subject = subjectInput.value.trim();
+        const startTime = startTimeInput.value;
+        const endTime = endTimeInput.value;
+        if (!name || !dueDate) return;
+
+        const newTask = {
+            id: Date.now().toString(), name, dueDate, subject,
+            startTime, endTime, isComplete: false, 
+            notificationScheduled: false // Initialize notification status
+        };
+        tasks.push(newTask);
+        saveTasks();
+        
+        if (Notification.permission === 'granted') {
+            new Notification('Task Added Successfully!', {
+                body: `Don't forget: "${newTask.name}" is scheduled.`,
+                icon: 'https://cdn-icons-png.flaticon.com/512/1024/1024823.png'
+            });
+        }
+        
+        scheduleStartTaskNotifications(); 
+        renderAll();
+        addTaskForm.reset();
+        dueDateInput.setAttribute('min', new Date().toISOString().split('T')[0]);
+    }
+    
+    function handleTaskListClick(e) {
+        if (e.target.classList.contains('task-checkbox')) {
+            const task = tasks.find(t => t.id === e.target.dataset.id);
+            if (task) {
+                task.isComplete = !task.isComplete;
+                saveTasks();
+                renderAll();
+            }
+        }
+        if (e.target.closest('.delete-btn')) {
+            tasks = tasks.filter(t => t.id !== e.target.closest('.delete-btn').dataset.id);
+            saveTasks();
+            renderAll();
+        }
+    }
+
+    function renderAll() {
+        renderTasks();
+        renderTimeline();
+        renderPieChart(); // Call the new chart rendering function
+    }
+
+    addTaskForm.addEventListener('submit', addTask);
+    taskList.addEventListener('click', handleTaskListClick);
+
+    checkAuth();
+});
+</script>
+</body>
+</html>
