@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Efficient Academic Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-image: linear-gradient(to right top, #a18cd1, #fbc2eb);
+            background-attachment: fixed;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        .task-completed { text-decoration: line-through; opacity: 0.6; }
+        .auth-link { cursor: pointer; color: #4f46e5; }
+        .auth-link:hover { text-decoration: underline; }
+        .nav-btn.active {
+            color: #4f46e5;
+            border-top: 3px solid #4f46e5;
+            background-color: #eef2ff;
+        }
+
+        /* Improved UI/UX Styles */
+        .toast {
+            transform: translateY(-100%);
+            animation: slide-down 0.5s forwards;
+        }
+        @keyframes slide-down {
+            to { transform: translateY(0); }
+        }
+
+        .task-item {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .task-exit {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            width: 1rem;
+            height: 1rem;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div id="toast-container" class="fixed top-5 right-5 z-50"></div>
+
+    <div id="auth-container" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-sm">
+            <div id="login-form-container" class="bg-white/70 backdrop-blur-sm p-8 rounded-2xl shadow-lg">
+                <h1 class="text-3xl font-bold text-center text-slate-900 mb-2">Welcome Back!</h1>
+                <p class="text-center text-slate-500 mb-6">Please log in to your planner.</p>
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label for="login-username" class="block text-sm font-medium text-slate-600">Username</label>
+                        <input type="text" id="login-username" name="login-username" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium text-slate-600">Password</label>
+                        <input type="password" id="login-password" name="login-password" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <p id="loginError" class="text-sm text-red-600 hidden">Invalid username or password.</p>
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-transform transform hover:scale-105">
+                        <i class="fas fa-sign-in-alt mr-2"></i> Log In
+                    </button>
+                </form>
+                <p class="text-center text-sm text-slate-600 mt-6">
+                    Don't have an account? <span id="show-register-form" class="font-semibold auth-link">Sign Up</span>
+                </p>
+            </div>
+            <div id="register-form-container" class="bg-white/70 backdrop-blur-sm p-8 rounded-2xl shadow-lg hidden">
+                 <h1 class="text-3xl font-bold text-center text-slate-900 mb-2">Create Account</h1>
+                <p class="text-center text-slate-500 mb-6">Start organizing your academic life.</p>
+                <form id="registerForm" class="space-y-4">
+                     <div>
+                        <label for="register-username" class="block text-sm font-medium text-slate-600">Username</label>
+                        <input type="text" id="register-username" name="register-username" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label for="register-password" class="block text-sm font-medium text-slate-600">Password</label>
+                        <input type="password" id="register-password" name="register-password" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <p id="registerError" class="text-sm text-red-600 hidden"></p>
+                    <p id="registerSuccess" class="text-sm text-green-600 hidden">Registration successful! Please log in.</p>
+                    <button type="submit" class="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-transform transform hover:scale-105">
+                        <i class="fas fa-user-plus mr-2"></i> Register
+                    </button>
+                </form>
+                 <p class="text-center text-sm text-slate-600 mt-6">
+                    Already have an account? <span id="show-login-form" class="font-semibold auth-link">Log In</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <main id="app-shell" class="hidden">
+        <div id="main-content" class="pb-24">
+            </div>
+        <nav class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-slate-200 flex justify-around shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+            <button data-page="planner" class="nav-btn flex-1 py-3 px-2 text-center text-slate-600 hover:bg-slate-100 transition-colors">
+                <i class="fas fa-home text-xl"></i><span class="block text-xs font-medium mt-1">Home</span>
+            </button>
+            <button data-page="search" class="nav-btn flex-1 py-3 px-2 text-center text-slate-600 hover:bg-slate-100 transition-colors">
+                <i class="fas fa-search text-xl"></i><span class="block text-xs font-medium mt-1">Search</span>
+            </button>
+            <button data-page="profile" class="nav-btn flex-1 py-3 px-2 text-center text-slate-600 hover:bg-slate-100 transition-colors">
+                <i class="fas fa-user text-xl"></i><span class="block text-xs font-medium mt-1">Profile</span>
+            </button>
+        </nav>
+    </main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // =============================================
+    // 🧠 1. STATE MANAGEMENT & APP CORE
+    // =============================================
+    
+    const state = {
+        currentUser: null,
+        currentPage: 'planner',
+        tasks: [],
+        users: [],
+        isAddingTask: false,
+    };
+    
+    let timeUpdateInterval = null;
+    let myPieChart = null;
+
+    const setState = (newState) => {
+        Object.assign(state, newState);
+        renderApp();
+    };
+
+    // =============================================
+    // 🎨 2. RENDERING LOGIC (UI Components)
+    // =============================================
+
+    const renderApp = () => {
+        const appShell = document.getElementById('app-shell');
+        const authContainer = document.getElementById('auth-container');
+        
+        if (state.currentUser) {
+            authContainer.classList.add('hidden');
+            appShell.classList.remove('hidden');
+            renderMainContent();
+            updateNavButtons();
+        } else {
+            authContainer.classList.remove('hidden');
+            appShell.classList.add('hidden');
+        }
+    };
+    
+    const renderMainContent = () => {
+        const mainContent = document.getElementById('main-content');
+        switch(state.currentPage) {
+            case 'planner':
+                mainContent.innerHTML = getPlannerViewHTML();
+                renderPlannerPageContent();
+                break;
+            case 'search':
+                mainContent.innerHTML = getSearchViewHTML();
+                break;
+            case 'profile':
+                mainContent.innerHTML = getProfileViewHTML();
+                renderProfilePageContent();
+                break;
+        }
+    };
+
+    const updateNavButtons = () => {
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.page === state.currentPage);
+        });
+    };
+    
+    const getPlannerViewHTML = () => `
+        <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+            <header class="text-center mb-8">
+                <h1 class="text-4xl sm:text-5xl font-extrabold text-white" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.2);">Academic Planner</h1>
+                <p class="mt-2 text-slate-200">Welcome, ${state.currentUser}! Time to get organized.</p>
+                <div id="currentTimeDisplay" class="text-lg text-slate-100 mt-2 font-medium"></div>
+            </header>
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <aside class="lg:col-span-1 space-y-8">
+                    <div class="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg">
+                        <h2 class="text-2xl font-bold mb-4 text-slate-900">Add New Task</h2>
+                        <form id="addTaskForm" class="space-y-4">${getAddTaskFormHTML()}</form>
+                    </div>
+                    <div class="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg">
+                        <h2 class="text-2xl font-bold mb-4 text-slate-900">This Week's Timeline</h2>
+                        <div id="timeline" class="space-y-3"></div>
+                    </div>
+                    <div class="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg">
+                        <h2 class="text-2xl font-bold mb-4 text-slate-900">Task Status Overview</h2>
+                        <div class="max-w-xs mx-auto"><canvas id="taskStatusChart"></canvas></div>
+                    </div>
+                </aside>
+                <div class="lg:col-span-2 bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4 text-slate-900">Your Tasks</h2>
+                    <div id="taskList" class="space-y-4 h-[60vh] overflow-y-auto pr-2"></div>
+                    <div id="noTasksMessage" class="text-center py-16 text-slate-500 hidden">
+                         <i class="fas fa-check-circle text-5xl text-slate-300"></i>
+                         <p class="mt-4 text-lg font-medium">All clear! Add a new task to get started.</p>
+                    </div>
+                </div>
+            </section>
+        </div>`;
+
+    const getSearchViewHTML = () => `
+        <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-white text-center mb-8" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.2);">Search Tasks</h1>
+            <div class="mb-6 max-w-2xl mx-auto"><div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><i class="fas fa-search text-slate-400"></i></div>
+                <input type="text" id="searchInput" placeholder="Search by task name or subject..." class="w-full px-4 py-3 pl-12 bg-white/80 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div></div>
+            <div id="searchResults" class="space-y-4 max-w-2xl mx-auto"></div>
+            <p id="noResultsMessage" class="text-center py-16 text-slate-100 font-semibold hidden">No tasks found matching your search.</p>
+        </div>`;
+
+    const getProfileViewHTML = () => `
+        <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-white text-center mb-8" style="text-shadow: 1px 1px 3px rgba(0,0,0,0.2);">Profile & Stats</h1>
+            <div id="profileContent" class="bg-white/70 backdrop-blur-sm p-8 rounded-2xl shadow-lg max-w-md mx-auto"></div>
+        </div>`;
+
+    const getAddTaskFormHTML = () => `
+        <div>
+            <label for="taskName" class="block text-sm font-medium text-slate-600">Task Name</label>
+            <input type="text" id="taskName" name="taskName" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+            <label for="subject" class="block text-sm font-medium text-slate-600">Subject / Course</label>
+            <input type="text" id="subject" name="subject" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+            <label for="dueDate" class="block text-sm font-medium text-slate-600">Due Date</label>
+            <input type="date" id="dueDate" name="dueDate" required min="${new Date().toISOString().split('T')[0]}" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+             <div>
+                <label for="startTime" class="block text-sm font-medium text-slate-600">Start Time</label>
+                <input type="time" id="startTime" name="startTime" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label for="endTime" class="block text-sm font-medium text-slate-600">End Time</label>
+                <input type="time" id="endTime" name="endTime" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+        </div>
+        <button type="submit" id="addTaskBtn" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-all flex items-center justify-center disabled:bg-indigo-400" ${state.isAddingTask ? 'disabled' : ''}>
+            ${state.isAddingTask ? '<div class="spinner"></div>' : '<i class="fas fa-plus mr-2"></i> Add Task'}
+        </button>`;
+
+    const renderPlannerPageContent = () => {
+        renderTasksList();
+        renderTimeline();
+        renderPieChart();
+        updateTime();
+    };
+
+    const renderProfilePageContent = () => {
+        const completed = state.tasks.filter(t => t.isComplete).length;
+        document.getElementById('profileContent').innerHTML = `
+            <div class="text-center mb-6">
+                <i class="fas fa-user-circle text-6xl text-slate-500"></i>
+                <h2 class="text-3xl font-bold mt-3 text-slate-800">${state.currentUser}</h2>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-center mb-8 border-t border-b border-slate-200 py-4">
+                <div><p class="text-4xl font-bold text-indigo-600">${state.tasks.length}</p><p class="text-sm text-slate-500 font-medium">Total Tasks</p></div>
+                <div><p class="text-4xl font-bold text-green-600">${completed}</p><p class="text-sm text-slate-500 font-medium">Completed</p></div>
+            </div>
+            <button id="logoutBtn" class="w-full bg-red-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>`;
+    };
+
+    const renderTasksList = () => {
+        const taskListEl = document.getElementById('taskList');
+        const noTasksMessageEl = document.getElementById('noTasksMessage');
+        if (!taskListEl) return;
+        const hasTasks = state.tasks.length > 0;
+        noTasksMessageEl.classList.toggle('hidden', !hasTasks);
+        taskListEl.innerHTML = !hasTasks ? '' : state.tasks
+            .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+            .map(task => {
+                const isOverdue = new Date(task.dueDate) < new Date().setHours(0,0,0,0) && !task.isComplete;
+                const taskClasses = `task-item p-4 rounded-lg border flex items-center justify-between transition-all ${task.isComplete ? 'bg-slate-50/50' : 'bg-white/80'} ${isOverdue ? 'border-red-400' : 'border-slate-200'}`;
+                return `
+                <div class="${taskClasses}">
+                    <div class="flex items-center gap-4">
+                        <input type="checkbox" data-id="${task.id}" class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 task-checkbox flex-shrink-0" ${task.isComplete ? 'checked' : ''}>
+                        <div>
+                            <p class="font-bold ${task.isComplete ? 'task-completed text-slate-500' : 'text-slate-800'}">${task.name}</p>
+                            <div class="text-sm text-slate-500 flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+                                <span><i class="fas fa-calendar-alt mr-1.5"></i>${new Date(task.dueDate).toLocaleDateString()}</span>
+                                ${task.subject ? `<span><i class="fas fa-book mr-1.5"></i>${task.subject}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <button data-id="${task.id}" class="delete-btn text-slate-400 hover:text-red-500" aria-label="Delete task"><i class="fas fa-trash-alt"></i></button>
+                </div>`;
+            }).join('');
+    };
+
+    const renderTimeline = () => {
+        const timelineContainer = document.getElementById('timeline');
+        if (!timelineContainer) return;
+        timelineContainer.innerHTML = '';
+        const todayDate = new Date();
+        for (let i = 0; i < 7; i++) {
+            const day = new Date(todayDate);
+            day.setDate(todayDate.getDate() + i);
+            const dayString = day.toISOString().split('T')[0];
+            const dayName = day.toLocaleDateString('en-US', { weekday: 'long' });
+            const tasksForDay = state.tasks.filter(task => task.dueDate === dayString && !task.isComplete);
+            const dayElement = document.createElement('div');
+            let tasksHtml = (tasksForDay.length > 0) ? `<div class="mt-1 text-xs text-indigo-700 font-semibold">${tasksForDay.length} task${tasksForDay.length > 1 ? 's' : ''} due</div>` : `<div class="mt-1 text-xs text-slate-400">No tasks due</div>`;
+            dayElement.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="font-semibold text-sm">${i === 0 ? 'Today' : dayName}</span>
+                    <span class="text-xs text-slate-400">${day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-2.5 mt-1"><div class="bg-indigo-500 h-2.5 rounded-full" style="width: ${tasksForDay.length * 25 > 100 ? 100 : tasksForDay.length * 25}%"></div></div>
+                ${tasksHtml}`;
+            timelineContainer.appendChild(dayElement);
+        }
+    };
+    
+    const renderPieChart = () => {
+        const ctx = document.getElementById('taskStatusChart');
+        if (!ctx) return;
+        const completed = state.tasks.filter(t => t.isComplete).length;
+        const pending = state.tasks.length - completed;
+        if (myPieChart) myPieChart.destroy();
+        myPieChart = new Chart(ctx.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ['Completed', 'Pending'],
+                datasets: [{
+                    data: [completed, pending],
+                    backgroundColor: ['rgba(75, 192, 192, 0.7)', 'rgba(153, 102, 255, 0.7)'],
+                    borderColor: ['rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)'],
+                    borderWidth: 1
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'top' } } }
+        });
+    };
+
+    const renderSearchResults = (results) => {
+        const resultsEl = document.getElementById('searchResults');
+        const noResultsEl = document.getElementById('noResultsMessage');
+        if (!resultsEl) return;
+        const hasResults = results && results.length > 0;
+        noResultsEl.classList.toggle('hidden', hasResults);
+        resultsEl.innerHTML = !hasResults ? '' : results.map(task => {
+            return `
+            <div class="p-4 rounded-lg border flex items-center justify-between bg-white/80 border-slate-200">
+                <div>
+                    <p class="font-bold ${task.isComplete ? 'task-completed text-slate-500' : 'text-slate-800'}">${task.name}</p>
+                    <div class="text-sm text-slate-500">Due: ${new Date(task.dueDate).toLocaleDateString()}</div>
+                </div>
+                <span class="text-sm font-semibold ${task.isComplete ? 'text-green-600' : 'text-orange-500'}">
+                    ${task.isComplete ? 'Completed' : 'Pending'}
+                </span>
+            </div>`;
+        }).join('');
+    };
+
+    // =============================================
+    // ⚙️ 3. LOGIC & EVENT HANDLERS
+    // =============================================
+
+    const handleLogin = (e) => {
+        e.preventDefault();
+        const username = e.target.elements['login-username'].value;
+        const password = e.target.elements['login-password'].value;
+        const user = state.users.find(u => u.username === username && u.password === password);
+        if (user) {
+            sessionStorage.setItem('loggedInUser', username);
+            setState({ currentUser: username, tasks: getTasksForUser(username), currentPage: 'planner' });
+            document.getElementById('loginError').classList.add('hidden');
+        } else {
+            document.getElementById('loginError').classList.remove('hidden');
+        }
+    };
+    
+    const handleRegister = (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const username = form.elements['register-username'].value.trim();
+        const password = form.elements['register-password'].value;
+        const errorEl = document.getElementById('registerError');
+        const successEl = document.getElementById('registerSuccess');
+        errorEl.classList.add('hidden');
+        successEl.classList.add('hidden');
+        if (!username || !password) {
+            errorEl.textContent = 'Username and password cannot be empty.';
+            errorEl.classList.remove('hidden'); return;
+        }
+        if (state.users.find(user => user.username === username)) {
+            errorEl.textContent = 'Username already exists.';
+            errorEl.classList.remove('hidden'); return;
+        }
+        const updatedUsers = [...state.users, { username, password }];
+        saveUsers(updatedUsers);
+        setState({ users: updatedUsers });
+        successEl.classList.remove('hidden');
+        form.reset();
+        setTimeout(() => {
+            document.getElementById('register-form-container').classList.add('hidden');
+            document.getElementById('login-form-container').classList.remove('hidden');
+            successEl.classList.add('hidden');
+        }, 2000);
+    };
+
+    const handleLogout = () => {
+        sessionStorage.removeItem('loggedInUser');
+        setState({ currentUser: null, tasks: [] });
+    };
+
+    const handleAddTask = (form) => {
+        setState({ isAddingTask: true });
+        const newTask = {
+            id: Date.now().toString(),
+            name: form.elements.taskName.value.trim(),
+            subject: form.elements.subject.value.trim(),
+            dueDate: form.elements.dueDate.value,
+            startTime: form.elements.startTime.value,
+            endTime: form.elements.endTime.value,
+            isComplete: false,
+        };
+        setTimeout(() => {
+            const updatedTasks = [...state.tasks, newTask];
+            saveTasksForUser(state.currentUser, updatedTasks);
+            setState({ tasks: updatedTasks, isAddingTask: false });
+            showToast('Task added successfully!', 'success');
+        }, 500);
+    };
+
+    const handleSearch = (input) => {
+        const searchTerm = input.value.toLowerCase().trim();
+        const results = searchTerm ? state.tasks.filter(t => 
+            t.name.toLowerCase().includes(searchTerm) || 
+            (t.subject && t.subject.toLowerCase().includes(searchTerm))
+        ) : [];
+        renderSearchResults(results);
+    };
+
+    // =============================================
+    // 🛠️ 4. UTILITIES & HELPERS
+    // =============================================
+    
+    const loadUsers = () => JSON.parse(localStorage.getItem('plannerUsers')) || [];
+    const saveUsers = (users) => localStorage.setItem('plannerUsers', JSON.stringify(users));
+    const getTasksForUser = (username) => (JSON.parse(localStorage.getItem('academicPlannerTasks')) || {})[username] || [];
+    const saveTasksForUser = (username, tasks) => {
+        const allTasks = JSON.parse(localStorage.getItem('academicPlannerTasks')) || {};
+        allTasks[username] = tasks;
+        localStorage.setItem('academicPlannerTasks', JSON.stringify(allTasks));
+    };
+
+    const showToast = (message, type = 'info') => {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        const bgColor = type === 'success' ? 'bg-green-500' : 'bg-slate-600';
+        toast.className = `toast ${bgColor} text-white font-bold py-2 px-4 rounded-lg shadow-lg mb-2`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    };
+
+    const debounce = (func, delay) => {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func(...args), delay);
+        };
+    };
+    
+    const updateTime = () => {
+        const timeEl = document.getElementById('currentTimeDisplay');
+        if (timeEl) timeEl.textContent = new Date().toLocaleString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+            hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true
+        });
+    };
+
+    // =============================================
+    // 🚀 5. INITIALIZATION & GLOBAL LISTENERS
+    // =============================================
+    
+    const init = () => {
+        const mainContent = document.getElementById('main-content');
+        
+        // Delegated listener for clicks inside the main app content
+        mainContent.addEventListener('click', e => {
+            if (e.target.closest('#logoutBtn')) {
+                handleLogout();
+            }
+            if (e.target.matches('.task-checkbox')) {
+                const taskId = e.target.dataset.id;
+                const updatedTasks = state.tasks.map(task => 
+                    task.id === taskId ? { ...task, isComplete: e.target.checked } : task
+                );
+                saveTasksForUser(state.currentUser, updatedTasks);
+                setState({ tasks: updatedTasks });
+            }
+            if (e.target.closest('.delete-btn')) {
+                const button = e.target.closest('.delete-btn');
+                const taskId = button.dataset.id;
+                const taskElement = button.closest('.task-item');
+                if (taskElement) {
+                    taskElement.classList.add('task-exit');
+                    setTimeout(() => {
+                        const updatedTasks = state.tasks.filter(task => task.id !== taskId);
+                        saveTasksForUser(state.currentUser, updatedTasks);
+                        setState({ tasks: updatedTasks });
+                        showToast('Task deleted.');
+                    }, 300);
+                }
+            }
+        });
+        
+        // Delegated listener for form submissions inside the main app content
+        mainContent.addEventListener('submit', e => {
+            e.preventDefault();
+            if (e.target.matches('#addTaskForm')) {
+                handleAddTask(e.target);
+            }
+        });
+
+        // Delegated listener for search input
+        const debouncedSearchHandler = debounce(handleSearch, 300);
+        mainContent.addEventListener('input', e => {
+            if (e.target.matches('#searchInput')) {
+                debouncedSearchHandler(e.target);
+            }
+        });
+
+        // Static listeners for elements outside the main dynamic content
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        document.getElementById('registerForm').addEventListener('submit', handleRegister);
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => setState({ currentPage: btn.dataset.page })));
+        
+        // Toggle auth forms
+        document.getElementById('show-register-form').addEventListener('click', () => {
+            document.getElementById('login-form-container').classList.add('hidden');
+            document.getElementById('register-form-container').classList.remove('hidden');
+        });
+        document.getElementById('show-login-form').addEventListener('click', () => {
+            document.getElementById('register-form-container').classList.add('hidden');
+            document.getElementById('login-form-container').classList.remove('hidden');
+        });
+        
+        // Final State Setup
+        const loggedInUser = sessionStorage.getItem('loggedInUser');
+        setState({
+            currentUser: loggedInUser,
+            users: loadUsers(),
+            tasks: loggedInUser ? getTasksForUser(loggedInUser) : [],
+        });
+
+        if (timeUpdateInterval) clearInterval(timeUpdateInterval);
+        timeUpdateInterval = setInterval(updateTime, 1000);
+    };
+    
+    init();
+});
+</script>
+
+</body>
+</html>
